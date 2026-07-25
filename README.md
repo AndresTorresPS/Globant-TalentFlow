@@ -1,0 +1,76 @@
+# Globant-TalentFlow
+
+**Globant-TalentFlow** is a modern Data Engineering Proof of Concept (PoC) that bridges scalable data processing with a robust REST interface. It orchestrates historical hiring data migration, enforces strict data quality rules, manages AVRO-based disaster recovery, and exposes SQL-driven analytics—simulating a production-ready ecosystem.
+
+---
+
+## Table of Contents
+
+1. [Architecture and Technologies](#-architecture-and-technologies)
+2. [Release Plan (Gitflow)](#-release-plan-gitflow)
+3. [API Endpoints](#-api-endpoints)
+4. [Conventional Commits Guide](#-conventional-commits-guide)
+5. [Deployment and Local Execution](#-deployment-and-local-execution)
+
+---
+
+## Architecture and Technologies
+
+The project decouples massive processing power from the serving layer, utilizing:
+
+*   **Data Engine (ETL/ELT):** PySpark and Databricks (Delta Lake) for historical migration, strict validation, and AVRO-format backups.
+*   **REST API:** FastAPI (Python) to manage continuous ingestion, trigger backups, and serve analytical queries via `databricks-sql-connector`.
+*   **Version Control:** Strict Gitflow to ensure integration and deployment quality.
+
+---
+
+## Release Plan (Gitflow)
+
+This project was planned and executed using the **Gitflow** methodology, breaking down the requirements into three main delivery phases:
+
+### Release 1.0: Data Foundation and Historical Migration
+*   **Feature 1:** Creation of Delta schemas in Databricks and strict data validation (nulls, ISO 8601 formats, referential integrity). Isolation of invalid records in a `bad_records_log` table.
+*   **Feature 2:** Ingestion of historical CSV files (`hired_employees.csv`, `departments.csv`, `jobs.csv`) into the Data Lake.
+
+### Release 1.1: Ingestion API and Disaster Recovery
+*   **Feature 3:** Implementation of a generic `POST /api/v1/ingest/{table}` endpoint with FastAPI, validating schemas via Pydantic (up to 1000 records per batch).
+*   **Feature 4 & 5:** Integration of full Backup (export to AVRO) and Restore (overwrite from AVRO) processes through dedicated endpoints.
+
+### Release 2.0: Data Analytics (SQL Metrics)
+*   **Feature 6:** Analytical query grouping hires by job and department (separated by quarters - Q1 to Q4) for the year 2021.
+*   **Feature 7:** Calculation of departments that hired above the global average in 2021, utilizing CTEs/Window Functions.
+
+---
+
+## API Endpoints
+
+The API exposes the following main services (interactively documented at `/docs` via Swagger UI):
+
+*   **Ingestion:** 
+    *   `POST /api/v1/ingest/hired_employees`
+    *   `POST /api/v1/ingest/departments`
+    *   `POST /api/v1/ingest/jobs`
+*   **Disaster Recovery:**
+    *   `POST /api/v1/backup/{table_name}`
+    *   `POST /api/v1/restore/{table_name}`
+*   **Analytics:**
+    *   `GET /api/v1/analytics/hires-by-quarter`
+    *   `GET /api/v1/analytics/departments-above-average`
+
+---
+
+## Conventional Commits Guide
+
+To keep the repository history readable and facilitate automated versioning, this project adheres to the *Conventional Commits* standard. 
+
+*   **`feat:`** Adds a new feature to the code (e.g., *feat: adds endpoint for hires by quarter*).
+*   **`fix:`** Fixes a bug in production code (the most common instead of deb).
+*   **`docs:`** Documentation-only changes (like updating this `README.md` file).
+*   **`style:`** Formatting changes that do not alter logic (spaces, semicolons, indentation, linting).
+*   **`refactor:`** Code modifications that neither add new features nor fix bugs, but improve structure.
+*   **`perf:`** Code changes strictly aimed at improving performance.
+*   **`test:`** Adding, modifying, or fixing unit or integration tests.
+*   **`ci:`** Changes to Continuous Integration configuration files and scripts (like GitHub Actions, Travis, or GitLab CI).
+*   **`build:`** Changes affecting the build system or external dependencies (like npm, Maven, Gradle, Docker).
+*   **`chore:`** Routine tasks and maintenance that do not affect production code (e.g., *chore: updates .gitignore file*).
+
