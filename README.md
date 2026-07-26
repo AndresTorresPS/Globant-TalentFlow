@@ -30,7 +30,7 @@ This project was planned and executed using the **Gitflow** methodology, breakin
 
 ### Release 1.0: Data Foundation and Historical Migration
 *   **Feature 1:** Creation of Delta schemas in Databricks and strict data validation (nulls, ISO 8601 formats, referential integrity). Isolation of invalid records in a `bad_records_log` table.
-*   **Feature 2:** Ingestion of historical CSV files (`hired_employees.csv`, `departments.csv`, `jobs.csv`) into the Data Lake.
+*   **Feature 2:** Ingestion of historical CSV files (`hired_employees.csv`, `departments.csv`, `jobs.csv`) into the Data Lake from Azure Blob Storage.
 
 ### Release 1.1: Ingestion API and Disaster Recovery
 *   **Feature 3:** Implementation of a generic `POST /api/v1/ingest/{table}` endpoint with FastAPI, validating schemas via Pydantic (up to 1000 records per batch).
@@ -39,6 +39,45 @@ This project was planned and executed using the **Gitflow** methodology, breakin
 ### Release 2.0: Data Analytics (SQL Metrics)
 *   **Feature 6:** Analytical query grouping hires by job and department (separated by quarters - Q1 to Q4) for the year 2021.
 *   **Feature 7:** Calculation of departments that hired above the global average in 2021, utilizing CTEs/Window Functions.
+
+---
+
+## Cloud Infrastructure: Azure Blob Storage
+
+To support the Data Engineering pipeline and simulate a Landing Zone for the raw CSV files, an Azure Storage Account was provisioned. The infrastructure was designed following Cloud Governance and Security best practices.
+
+### Core Configuration
+
+| Property | Value |
+| :--- | :--- |
+| **Resource Group** | `globant-talentflow` |
+| **Location** | Brazil South |
+| **Storage Account Name** | `blobglobanttalentflow` |
+| **Main Service** | Azure Blob Storage |
+| **Performance & Replication** | Standard / LRS (Locally Redundant Storage) |
+| **Access Tier** | Cool |
+| **Hierarchical Namespace** | Disabled |
+
+### Security & Data Governance
+
+*   **Anonymous Access:** Disabled (Prevents unauthorized public access to sensitive employee data).
+*   **Authentication:** Storage Account Key Access Enabled (Required for Databricks integration via `wasbs://`).
+*   **In-Transit Encryption:** Secure Transfer Required (Minimum TLS Version 1.2).
+
+### Data Protection & Backup
+
+*   **Blob Soft Delete:** Enabled
+*   **Container Soft Delete:** Enabled
+*   **Retention Period:** 7 days
+*   *Note: This serves as a native infrastructure-level failsafe, complementing the Data Lake's Time Travel capabilities.*
+
+### 🏷️ Resource Tagging (FinOps)
+
+| Tag Name | Value |
+| :--- | :--- |
+| **Environment** | `Proof_of_Concept` |
+| **Area** | `Data_Governance` |
+| **Owner** | `Andres_Torres` |
 
 ---
 
