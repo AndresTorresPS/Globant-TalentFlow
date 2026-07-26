@@ -1,11 +1,17 @@
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit, current_timestamp
 
-# 1. Init SparkSession
-spark = SparkSession.builder.appName("GlobantTalentFlow").getOrCreate()
+# Azure Blob Storage connection using AKV secret scope
+storage_account_name = "globanttalentflow"
+container_name = "raw-data"
+secret_scope = "blob-storage-scope"
+secret_key = "blobglobanttalentflow-key"
 
-# Path to en DBFS (Databricks File System)
-path_data = "/FileStore/tables/globant/" 
+spark.conf.set(
+    f"fs.azure.account.key.{storage_account_name}.blob.core.windows.net",
+    dbutils.secrets.get(scope=secret_scope, key=secret_key)
+)
+
+path_data = f"wasbs://{container_name}@{storage_account_name}.blob.core.windows.net/"
 
 # 2. Load the raw CSV files with schema inference and headers
 df_departments = spark.read.option("header", "true").option("inferSchema", "true").csv(f"{path_data}departments.csv")
