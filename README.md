@@ -174,6 +174,6 @@ To keep the repository history readable and facilitate automated versioning, thi
 *   **`refactor:`** Code modifications that neither add new features nor fix bugs, but improve structure.
 *   **`perf:`** Code changes strictly aimed at improving performance.
 *   **`test:`** Adding, modifying, or fixing unit or integration tests.
-*   **`ci:`** Changes to Continuous Integration configuration files and scripts (like GitHub Actions, Travis, or GitLab CI).
-*   **`build:`** Changes affecting the build system or external dependencies (like npm, Maven, Gradle, Docker).
+*   **`ci:`** Changes to Continuous Integration configuration files and scripts (like GitHub Actions).
+*   **`build:`** Changes affecting the build system or external dependencies (like Docker).
 *   **`chore:`** Routine tasks and maintenance that do not affect production code (e.g., *chore: updates .gitignore file*).
