@@ -146,6 +146,35 @@ To process the raw data and execute the Data Engineering pipelines, an Azure Dat
 
 ---
 
+## Identity & Access Management: Access Connector for Azure Databricks
+
+To implement a Zero Trust architecture and enable seamless, secure access between Databricks Serverless (Unity Catalog) and Azure Storage without managing credentials, an Access Connector was provisioned using a System-Assigned Managed Identity.
+
+### Core Configuration
+
+| Property | Value |
+| :--- | :--- |
+| **Resource Name** | `databricks-access-connector` |
+| **Subscription** | Azure subscription 1 |
+| **Resource Group** | `globant-talentflow` |
+| **Region** | Brazil South |
+
+### Tags (Governance & FinOps)
+
+| Tag Name | Value |
+| :--- | :--- |
+| **Area** | `Data_Governance` |
+| **Environment** | `Proof_of_Concept` |
+| **Owner** | `Andres_Torres` |
+
+### Managed Identity
+
+| Property | Value |
+| :--- | :--- |
+| **Identity Type** | SystemAssigned |
+
+---
+
 ## API Endpoints
 
 The API exposes the following main services (interactively documented at `/docs` via Swagger UI):
