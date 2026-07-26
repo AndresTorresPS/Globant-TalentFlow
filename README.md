@@ -71,13 +71,44 @@ To support the Data Engineering pipeline and simulate a Landing Zone for the raw
 *   **Retention Period:** 7 days
 *   *Note: This serves as a native infrastructure-level failsafe, complementing the Data Lake's Time Travel capabilities.*
 
-### 🏷️ Resource Tagging (FinOps)
+### Resource Tagging (FinOps)
 
 | Tag Name | Value |
 | :--- | :--- |
 | **Environment** | `Proof_of_Concept` |
 | **Area** | `Data_Governance` |
 | **Owner** | `Andres_Torres` |
+
+---
+
+## Secrets Management: Azure Key Vault
+
+To adhere to strict security standards and prevent hardcoded credentials in the source code, **Azure Key Vault** was implemented as the centralized secrets management solution. This ensures secure, programmatic access to the Storage Account keys from Databricks without exposing sensitive data.
+
+### Core Configuration
+
+| Property | Value |
+| :--- | :--- |
+| **Resource Group** | `globant-talentflow` |
+| **Location** | Brazil South |
+| **Key Vault Name** | `talentflow-secrets` |
+| **Pricing Tier** | Standard |
+
+### Security & Access Policies
+
+| Property | Value |
+| :--- | :--- |
+| **Permission Model** | Azure Role-Based Access Control (RBAC) |
+| **Connectivity** | Public Endpoint (All networks) |
+| **VMs for Deployment** | Disabled |
+| **ARM for Template Deployment** | Disabled |
+| **Azure Disk Encryption** | Disabled |
+
+### Data Protection
+
+*   **Soft Delete:** Enabled
+*   **Retention Period:** 90 days
+*   **Purge Protection:** Disabled
 
 ---
 
@@ -112,4 +143,3 @@ To keep the repository history readable and facilitate automated versioning, thi
 *   **`ci:`** Changes to Continuous Integration configuration files and scripts (like GitHub Actions, Travis, or GitLab CI).
 *   **`build:`** Changes affecting the build system or external dependencies (like npm, Maven, Gradle, Docker).
 *   **`chore:`** Routine tasks and maintenance that do not affect production code (e.g., *chore: updates .gitignore file*).
-
