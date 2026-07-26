@@ -42,7 +42,7 @@ This project was planned and executed using the **Gitflow** methodology, breakin
 
 ---
 
-## Cloud Infrastructure: Azure Blob Storage
+## Cloud Storage Infrastructure: Azure Blob Storage
 
 To support the Data Engineering pipeline and simulate a Landing Zone for the raw CSV files, an Azure Storage Account was provisioned. The infrastructure was designed following Cloud Governance and Security best practices.
 
@@ -109,6 +109,40 @@ To adhere to strict security standards and prevent hardcoded credentials in the 
 *   **Soft Delete:** Enabled
 *   **Retention Period:** 90 days
 *   **Purge Protection:** Disabled
+
+### Resource Tagging
+
+| Tag Name | Value |
+| :--- | :--- |
+| **Environment** | `Proof_of_Concept` |
+| **Area** | `Data_Governance` |
+| **Owner** | `Andres_Torres` |
+
+---
+
+## Cloud Computing: Azure Databricks
+
+To process the raw data and execute the Data Engineering pipelines, an Azure Databricks workspace was provisioned. The Premium tier was selected to enable enterprise-grade features, specifically the native integration with Azure Key Vault for secure secrets management (Zero Trust architecture).
+
+### Core Configuration
+
+| Property | Value |
+| :--- | :--- |
+| **Resource Group** | `globant-talentflow` |
+| **Location** | Brazil South |
+| **Workspace Name** | `talentflow-databricks` |
+| **Pricing Tier** | Premium |
+| **Workspace Type** | Serverless |
+
+### Security, Compliance & Networking
+
+| Property | Value |
+| :--- | :--- |
+| **Public Network Access** | Enabled |
+| **Customer-Managed Key (CMK) for Managed Services** | Disabled |
+| **Compliance Security Profile** | Disabled |
+| **Enhanced Security Monitoring** | Disabled |
+| **Automatic Cluster Update** | Disabled |
 
 ---
 
