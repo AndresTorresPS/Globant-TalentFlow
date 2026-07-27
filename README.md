@@ -8,9 +8,12 @@
 
 1. [Architecture and Technologies](#-architecture-and-technologies)
 2. [Release Plan (Gitflow)](#-release-plan-gitflow)
-3. [API Endpoints](#-api-endpoints)
-4. [Conventional Commits Guide](#-conventional-commits-guide)
-5. [Deployment and Local Execution](#-deployment-and-local-execution)
+3. [Cloud Storage Infrastructure: Azure Blob Storage](#cloud-storage-infrastructure-azure-blob-storage)
+4. [Secrets Management: Azure Key Vault](#secrets-management-azure-key-vault)
+5. [Work Area: Azure Databricks](#work-area-azure-databricks)
+6. [Cloud Compute Infrastructure: Databricks Single Node](#cloud-compute-infrastructre-databricks-single-node-cluster)
+7. [API Endpoints](#-api-endpoints)
+8. [Conventional Commits Guide](#-conventional-commits-guide)
 
 ---
 
@@ -30,7 +33,7 @@ This project was planned and executed using the **Gitflow** methodology, breakin
 
 ### Release 1.0: Data Foundation and Historical Migration
 *   **Feature 1:** Creation of Delta schemas in Databricks and strict data validation (nulls, ISO 8601 formats, referential integrity). Isolation of invalid records in a `bad_records_log` table.
-*   **Feature 2:** Ingestion of historical CSV files (`hired_employees.csv`, `departments.csv`, `jobs.csv`) into the Data Lake.
+*   **Feature 2:** Ingestion of historical CSV files (`hired_employees.csv`, `departments.csv`, `jobs.csv`) into the Data Lake from Azure Blob Storage.
 
 ### Release 1.1: Ingestion API and Disaster Recovery
 *   **Feature 3:** Implementation of a generic `POST /api/v1/ingest/{table}` endpoint with FastAPI, validating schemas via Pydantic (up to 1000 records per batch).
@@ -39,6 +42,142 @@ This project was planned and executed using the **Gitflow** methodology, breakin
 ### Release 2.0: Data Analytics (SQL Metrics)
 *   **Feature 6:** Analytical query grouping hires by job and department (separated by quarters - Q1 to Q4) for the year 2021.
 *   **Feature 7:** Calculation of departments that hired above the global average in 2021, utilizing CTEs/Window Functions.
+
+---
+
+## Cloud Storage Infrastructure: Azure Blob Storage
+
+To support the Data Engineering pipeline and simulate a Landing Zone for the raw CSV files, an Azure Storage Account was provisioned. The infrastructure was designed following Cloud Governance and Security best practices.
+
+### Core Configuration
+
+| Property | Value |
+| :--- | :--- |
+| **Resource Group** | `globant-talentflow` |
+| **Location** | Brazil South |
+| **Storage Account Name** | `blobglobanttalentflow` |
+| **Main Service** | Azure Blob Storage |
+| **Performance & Replication** | Standard / LRS (Locally Redundant Storage) |
+| **Access Tier** | Cool |
+| **Hierarchical Namespace** | Disabled |
+
+### Security & Data Governance
+
+*   **Anonymous Access:** Disabled (Prevents unauthorized public access to sensitive employee data).
+*   **Authentication:** Storage Account Key Access Enabled (Required for Databricks integration via `wasbs://`).
+*   **In-Transit Encryption:** Secure Transfer Required (Minimum TLS Version 1.2).
+
+### Data Protection & Backup
+
+*   **Blob Soft Delete:** Enabled
+*   **Container Soft Delete:** Enabled
+*   **Retention Period:** 7 days
+*   *Note: This serves as a native infrastructure-level failsafe, complementing the Data Lake's Time Travel capabilities.*
+
+### Resource Tagging (FinOps)
+
+| Tag Name | Value |
+| :--- | :--- |
+| **Environment** | `Proof_of_Concept` |
+| **Area** | `Data_Governance` |
+| **Owner** | `Andres_Torres` |
+
+---
+
+## Secrets Management: Azure Key Vault
+
+To adhere to strict security standards and prevent hardcoded credentials in the source code, **Azure Key Vault** was implemented as the centralized secrets management solution. This ensures secure, programmatic access to the Storage Account keys from Databricks without exposing sensitive data.
+
+### Core Configuration
+
+| Property | Value |
+| :--- | :--- |
+| **Resource Group** | `globant-talentflow` |
+| **Location** | Brazil South |
+| **Key Vault Name** | `talentflow-secrets` |
+| **Pricing Tier** | Standard |
+
+### Security & Access Policies
+
+| Property | Value |
+| :--- | :--- |
+| **Permission Model** | Azure Role-Based Access Control (RBAC) |
+| **Connectivity** | Public Endpoint (All networks) |
+| **VMs for Deployment** | Disabled |
+| **ARM for Template Deployment** | Disabled |
+| **Azure Disk Encryption** | Disabled |
+
+### Data Protection
+
+*   **Soft Delete:** Enabled
+*   **Retention Period:** 90 days
+*   **Purge Protection:** Disabled
+
+### Resource Tagging
+
+| Tag Name | Value |
+| :--- | :--- |
+| **Environment** | `Proof_of_Concept` |
+| **Area** | `Data_Governance` |
+| **Owner** | `Andres_Torres` |
+
+---
+
+## Work Area: Azure Databricks
+
+To process the raw data and execute the Data Engineering pipelines, an Azure Databricks workspace was provisioned. The Eval tier was selected to enable enterprise-grade features, specifically the native integration with Azure Key Vault for secure secrets management (Zero Trust architecture).
+
+### Core Configuration
+
+| Property | Value |
+| :--- | :--- |
+| **Resource Group** | `globant-talentflow` |
+| **Location** | Brazil South |
+| **Workspace Name** | `talentflow-workarea` |
+| **Pricing Tier** | trial |
+| **Workspace Type** | Hybrid |
+
+### Security, Compliance & Networking
+
+| Property | Value |
+| :--- | :--- |
+| **Public Network Access** | Enabled |
+| **Dedicated VNet Deployment** | Disabled |
+| **Customer-Managed Key (CMK) for Managed Services** | Disabled |
+| **Compliance Security Profile** | Disabled |
+| **Enhanced Security Monitoring** | Disabled |
+| **Automatic Cluster Update** | Disabled |
+
+---
+
+### Cloud Compute Infrastructre: Databricks Single Node Cluster
+
+For the execution of this POC, a *Single Node* cluster with GPU acceleration was provisioned, configured with the following specifications:
+
+#### General Specifications
+- **Cluster name:** `talentflow-cluster`
+- **Policy:** Personal Compute
+- **Data access mode:** Unity Catalog
+- **Databricks runtime:** 18 LTS (Machine Learning / Scala 2.13, Spark 4.1.0)
+- **Estimated cost:** 1 DBU/h
+- **Auto-termination:** 30 minutes of inactivity
+
+#### Hardware (Node Type)
+- **Instance:** `Standard_NC4as_T4_v3` [T4]
+- **Resources:** 4 cores, 28 GB memory
+- **Acceleration:** 1 GPU
+
+#### Tags
+| Key | Value |
+| :--- | :--- |
+| `Area` | Data_Governance |
+| `Environment` | Proof_of_Concept |
+| `Owner` | Andres_Torres |
+
+#### Spark Configuration
+```properties
+spark.databricks.cluster.profile singleNode
+```
 
 ---
 
@@ -70,7 +209,6 @@ To keep the repository history readable and facilitate automated versioning, thi
 *   **`refactor:`** Code modifications that neither add new features nor fix bugs, but improve structure.
 *   **`perf:`** Code changes strictly aimed at improving performance.
 *   **`test:`** Adding, modifying, or fixing unit or integration tests.
-*   **`ci:`** Changes to Continuous Integration configuration files and scripts (like GitHub Actions, Travis, or GitLab CI).
-*   **`build:`** Changes affecting the build system or external dependencies (like npm, Maven, Gradle, Docker).
+*   **`ci:`** Changes to Continuous Integration configuration files and scripts (like GitHub Actions).
+*   **`build:`** Changes affecting the build system or external dependencies (like Docker).
 *   **`chore:`** Routine tasks and maintenance that do not affect production code (e.g., *chore: updates .gitignore file*).
-
