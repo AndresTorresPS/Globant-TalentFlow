@@ -9,10 +9,11 @@
 1. [Architecture and Technologies](#-architecture-and-technologies)
 2. [Release Plan (Gitflow)](#-release-plan-gitflow)
 3. [Cloud Storage Infrastructure: Azure Blob Storage](#cloud-storage-infrastructure-azure-blob-storage)
-4. [Cloud Computing: Azure Databricks](#cloud-computing-azure-databricks)
-5. [Secrets Management: Azure Key Vault](#secrets-management-azure-key-vault)
-6. [API Endpoints](#-api-endpoints)
-7. [Conventional Commits Guide](#-conventional-commits-guide)
+4. [Secrets Management: Azure Key Vault](#secrets-management-azure-key-vault)
+5. [Work Area: Azure Databricks](#work-area-azure-databricks)
+6. [Cloud Compute Infrastructure: Databricks Single Node](#cloud-compute-infrastructre-databricks-single-node-cluster)
+7. [API Endpoints](#-api-endpoints)
+8. [Conventional Commits Guide](#-conventional-commits-guide)
 
 ---
 
@@ -122,7 +123,7 @@ To adhere to strict security standards and prevent hardcoded credentials in the 
 
 ---
 
-## Cloud Computing: Azure Databricks
+## Work Area: Azure Databricks
 
 To process the raw data and execute the Data Engineering pipelines, an Azure Databricks workspace was provisioned. The Eval tier was selected to enable enterprise-grade features, specifically the native integration with Azure Key Vault for secure secrets management (Zero Trust architecture).
 
@@ -146,6 +147,37 @@ To process the raw data and execute the Data Engineering pipelines, an Azure Dat
 | **Compliance Security Profile** | Disabled |
 | **Enhanced Security Monitoring** | Disabled |
 | **Automatic Cluster Update** | Disabled |
+
+---
+
+### Cloud Compute Infrastructre: Databricks Single Node Cluster
+
+For the execution of this POC, a *Single Node* cluster with GPU acceleration was provisioned, configured with the following specifications:
+
+#### General Specifications
+- **Cluster name:** `talentflow-cluster`
+- **Policy:** Personal Compute
+- **Data access mode:** Unity Catalog
+- **Databricks runtime:** 18 LTS (Machine Learning / Scala 2.13, Spark 4.1.0)
+- **Estimated cost:** 1 DBU/h
+- **Auto-termination:** 30 minutes of inactivity
+
+#### Hardware (Node Type)
+- **Instance:** `Standard_NC4as_T4_v3` [T4]
+- **Resources:** 4 cores, 28 GB memory
+- **Acceleration:** 1 GPU
+
+#### Tags
+| Key | Value |
+| :--- | :--- |
+| `Area` | Data_Governance |
+| `Environment` | Proof_of_Concept |
+| `Owner` | Andres_Torres |
+
+#### Spark Configuration
+```properties
+spark.databricks.cluster.profile singleNode
+```
 
 ---
 
