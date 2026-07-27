@@ -35,13 +35,14 @@ This project was planned and executed using the **Gitflow** methodology, breakin
 *   **Feature 1:** Creation of Delta schemas in Databricks and strict data validation (nulls, ISO 8601 formats, referential integrity). Isolation of invalid records in a `bad_records_log` table.
 *   **Feature 2:** Ingestion of historical CSV files (`hired_employees.csv`, `departments.csv`, `jobs.csv`) into the Data Lake from Azure Blob Storage.
 
-### Release 1.1: Ingestion API and Disaster Recovery
-*   **Feature 3:** Implementation of a generic `POST /api/v1/ingest/{table}` endpoint with FastAPI, validating schemas via Pydantic (up to 1000 records per batch).
-*   **Feature 4 & 5:** Integration of full Backup (export to AVRO) and Restore (overwrite from AVRO) processes through dedicated endpoints.
+### Release 2.0: Ingestion API and Disaster Recovery
+*   **Feature 3:** Detailed check of invalid records at `bad_records_log` table, creation of `detailed_bad_records_log` table.
+*   **Feature 4:** Implementation of a generic `POST /api/v1/ingest/{table}` endpoint with FastAPI, validating schemas via Pydantic (up to 1000 records per batch).
+*   **Feature 5 & 6:** Integration of full Backup (export to AVRO) and Restore (overwrite from AVRO) processes through dedicated endpoints.
 
-### Release 2.0: Data Analytics (SQL Metrics)
-*   **Feature 6:** Analytical query grouping hires by job and department (separated by quarters - Q1 to Q4) for the year 2021.
-*   **Feature 7:** Calculation of departments that hired above the global average in 2021, utilizing CTEs/Window Functions.
+### Release 3.0: Data Analytics (SQL Metrics)
+*   **Feature 7:** Analytical query grouping hires by job and department (separated by quarters - Q1 to Q4) for the year 2021.
+*   **Feature 8:** Calculation of departments that hired above the global average in 2021, utilizing CTEs/Window Functions.
 
 ---
 
