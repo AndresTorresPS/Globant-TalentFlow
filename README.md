@@ -8,9 +8,11 @@
 
 1. [Architecture and Technologies](#-architecture-and-technologies)
 2. [Release Plan (Gitflow)](#-release-plan-gitflow)
-3. [API Endpoints](#-api-endpoints)
-4. [Conventional Commits Guide](#-conventional-commits-guide)
-5. [Deployment and Local Execution](#-deployment-and-local-execution)
+3. [Cloud Storage Infrastructure: Azure Blob Storage](#cloud-storage-infrastructure-azure-blob-storage)
+4. [Cloud Computing: Azure Databricks](#cloud-computing-azure-databricks)
+5. [Secrets Management: Azure Key Vault](#secrets-management-azure-key-vault)
+6. [API Endpoints](#-api-endpoints)
+7. [Conventional Commits Guide](#-conventional-commits-guide)
 
 ---
 
@@ -122,7 +124,7 @@ To adhere to strict security standards and prevent hardcoded credentials in the 
 
 ## Cloud Computing: Azure Databricks
 
-To process the raw data and execute the Data Engineering pipelines, an Azure Databricks workspace was provisioned. The Premium tier was selected to enable enterprise-grade features, specifically the native integration with Azure Key Vault for secure secrets management (Zero Trust architecture).
+To process the raw data and execute the Data Engineering pipelines, an Azure Databricks workspace was provisioned. The Eval tier was selected to enable enterprise-grade features, specifically the native integration with Azure Key Vault for secure secrets management (Zero Trust architecture).
 
 ### Core Configuration
 
@@ -130,15 +132,16 @@ To process the raw data and execute the Data Engineering pipelines, an Azure Dat
 | :--- | :--- |
 | **Resource Group** | `globant-talentflow` |
 | **Location** | Brazil South |
-| **Workspace Name** | `talentflow-databricks` |
-| **Pricing Tier** | Premium |
-| **Workspace Type** | Serverless |
+| **Workspace Name** | `talentflow-workarea` |
+| **Pricing Tier** | trial |
+| **Workspace Type** | Hybrid |
 
 ### Security, Compliance & Networking
 
 | Property | Value |
 | :--- | :--- |
 | **Public Network Access** | Enabled |
+| **Dedicated VNet Deployment** | Disabled |
 | **Customer-Managed Key (CMK) for Managed Services** | Disabled |
 | **Compliance Security Profile** | Disabled |
 | **Enhanced Security Monitoring** | Disabled |
