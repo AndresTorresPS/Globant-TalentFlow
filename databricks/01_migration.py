@@ -1,14 +1,19 @@
 from pyspark.sql.functions import col, lit, current_timestamp
 
-# Azure Blob Storage connection using AKV secret scope
+# Azure Blob Storage connection using Databricks-backed secret scope
 storage_account_name = "globanttalentflow"
 container_name = "raw-data"
 secret_scope = "blob-storage-scope"
-secret_key = "blobglobanttalentflow-key"
+secret_key_name = "azure-storage-key"
+
+secret_key = dbutils.secrets.get(
+    scope=secret_scope,
+    key=secret_key_name,
+)
 
 spark.conf.set(
     f"fs.azure.account.key.{storage_account_name}.blob.core.windows.net",
-    dbutils.secrets.get(scope=secret_scope, key=secret_key)
+    secret_key,
 )
 
 path_data = f"wasbs://{container_name}@{storage_account_name}.blob.core.windows.net/"
