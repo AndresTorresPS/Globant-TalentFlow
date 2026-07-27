@@ -1,24 +1,31 @@
 from pyspark.sql.functions import col, lit, current_timestamp
 
-# Azure Blob Storage connection using Databricks-backed secret scope
+# -------------------------------------------------------------
+# 1. Azure Blob Storage configuration with SAS Token from Key Vault
+# -------------------------------------------------------------
 storage_account_name = "globanttalentflow"
 container_name = "raw-data"
-secret_scope = "blob-storage-scope"
-secret_key_name = "azure-storage-key"
+secret_scope = "akv-talentflow-scope"  
+secret_sas_name = "blob-sas-token"   
 
-secret_key = dbutils.secrets.get(
+# Retrieve the SAS Token from the Secret Scope
+sas_token = dbutils.secrets.get(
     scope=secret_scope,
-    key=secret_key_name,
+    key=secret_sas_name,
 )
 
+# Inject the SAS Token into the Spark configuration specifically for this container
 spark.conf.set(
-    f"fs.azure.account.key.{storage_account_name}.blob.core.windows.net",
-    secret_key,
+    f"fs.azure.sas.{container_name}.{storage_account_name}.blob.core.windows.net",
+    sas_token
 )
 
+# Define the base path using the legacy wasbs protocol
 path_data = f"wasbs://{container_name}@{storage_account_name}.blob.core.windows.net/"
 
-# 2. Load the raw CSV files with schema inference and headers
+# -------------------------------------------------------------
+# 2. Load the raw CSV files (inferring schema & headers)
+# -------------------------------------------------------------
 df_departments = spark.read.option("header", "true").option("inferSchema", "true").csv(f"{path_data}departments.csv")
 df_jobs = spark.read.option("header", "true").option("inferSchema", "true").csv(f"{path_data}jobs.csv")
 df_employees = spark.read.option("header", "true").option("inferSchema", "true").csv(f"{path_data}hired_employees.csv")
@@ -30,7 +37,7 @@ df_employees = spark.read.option("header", "true").option("inferSchema", "true")
 df_departments_valid = df_departments.filter(col("id").isNotNull() & col("department").isNotNull())
 df_departments_invalid = df_departments.subtract(df_departments_valid)
 
-# Guardar en Delta Lake
+# Save to Delta Lake
 df_departments_valid.write.format("delta").mode("overwrite").saveAsTable("departments")
 
 # -------------------------------------------------------------
@@ -40,6 +47,7 @@ df_departments_valid.write.format("delta").mode("overwrite").saveAsTable("depart
 df_jobs_valid = df_jobs.filter(col("id").isNotNull() & col("job").isNotNull())
 df_jobs_invalid = df_jobs.subtract(df_jobs_valid)
 
+# Save to Delta Lake
 df_jobs_valid.write.format("delta").mode("overwrite").saveAsTable("jobs")
 
 # -------------------------------------------------------------
@@ -50,7 +58,7 @@ df_jobs_valid.write.format("delta").mode("overwrite").saveAsTable("jobs")
 # - Referential integrity: department_id must exist in departments, job_id in jobs.
 # -------------------------------------------------------------
 
-# ISO 8601 UTC format Regex pattern: (YYYY-MM-DDTHH:MM:SSZ)
+# Regex pattern for ISO 8601 UTC format: (YYYY-MM-DDTHH:MM:SSZ)
 iso_regex = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"
 
 # Null checks for required fields
@@ -65,7 +73,7 @@ emp_base = df_employees.filter(
 # Date format validation using regex
 emp_date_valid = emp_base.filter(col("datetime").rlike(iso_regex))
 
-# Integrity checks for foreign keys: department_id and job_id must exist in their respective tables
+# Referential integrity checks (Foreign keys)
 valid_dept_ids = df_departments_valid.select("id").distinct()
 valid_job_ids = df_jobs_valid.select("id").distinct()
 
@@ -77,10 +85,10 @@ emp_fully_valid = emp_date_valid.join(valid_dept_ids, emp_date_valid.department_
 # -------------------------------------------------------------
 # 6. Capture invalid records for auditing
 # -------------------------------------------------------------
-# All records that are not fully valid are considered invalid
+# Everything that is not fully valid is considered invalid
 emp_invalid = df_employees.subtract(emp_fully_valid)
 
-# New column for logging: error_reason and logged_at
+# New columns for logging: error_reason and logged_at
 emp_invalid_logged = emp_invalid.withColumn("error_reason", lit("Failed validation rules: nulls, invalid ISO date, or missing foreign key")) \
                                   .withColumn("logged_at", current_timestamp())
 
