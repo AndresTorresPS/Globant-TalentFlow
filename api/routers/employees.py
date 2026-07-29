@@ -1,4 +1,3 @@
-# api/routers/employees.py
 import json
 from fastapi import APIRouter, HTTPException
 from schemas import EmployeeBatch
@@ -9,43 +8,33 @@ router = APIRouter(
     tags=["Employees"]
 )
 
-CHUNK_SIZE = 1000
-
 @router.post("/batch", status_code=201)
 async def ingest_employees(batch: EmployeeBatch):
     """
     Ingest a batch of hired employees.
-    Automatically splits payloads larger than 1,000 records into optimized chunks for Delta Live Tables / Auto Loader.
+    Pydantic automatically enforces the batch_limit constraint (max 10,000).
     """
     records = batch.data
     total_records = len(records)
-    uploaded_files = []
 
     try:
-        # Lógica de partición (Chunking) usando list comprehensions
-        chunks = [records[i:i + CHUNK_SIZE] for i in range(0, total_records, CHUNK_SIZE)]
 
-        for index, chunk in enumerate(chunks, start=1):
-            # Serializamos solo el bloque actual
-            # Usamos model_dump para convertir los objetos Pydantic a diccionarios y luego a JSON
-            chunk_dicts = [record.model_dump() for record in chunk]
-            json_payload = json.dumps({"data": chunk_dicts})
-            
-            # Subimos el bloque
-            blob_path = upload_json_to_blob(
-                table_name="employees", 
-                chunk_index=index, 
-                json_data=json_payload
-            )
-            uploaded_files.append(blob_path)
+        # Convert the list of Pydantic models to a list of dictionaries and then to JSON
+        records_dicts = [record.model_dump(mode="json") for record in records]
+        json_payload = json.dumps({"data": records_dicts})
+        
+        blob_path = upload_json_to_blob(
+            table_name="employees", 
+            chunk_index=1, 
+            json_data=json_payload
+        )
 
         return {
-            "message": "Batch processed and chunked successfully.",
+            "message": "Batch processed and uploaded successfully.",
             "total_records_inserted": total_records,
-            "chunks_created": len(chunks),
-            "files": uploaded_files
+            "file": blob_path
         }
 
     except Exception as e:
         # En un entorno real de producción, esto iría a Application Insights o Datadog
-        raise HTTPException(status_code=500, detail="An error occurred during data ingestion and chunking.")
+        raise HTTPException(status_code=500, detail="An error occurred during data ingestion.")

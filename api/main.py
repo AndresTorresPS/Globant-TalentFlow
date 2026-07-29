@@ -7,7 +7,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Endpoints
+# Endpoints registration
 app.include_router(employees.router)
 # app.include_router(departments.router)
 # app.include_router(jobs.router)
