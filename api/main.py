@@ -1,16 +1,14 @@
 from fastapi import FastAPI
-from routers import employees #, departments, jobs (import the others once created)
+from routers import ingestion
 
 app = FastAPI(
     title="TalentFlow Ingestion API",
-    description="REST API for batch data ingestion",
-    version="1.0.0"
+    description="REST API for unified-batch data ingestion: departments, jobs, and employees. Uploaded to Azure Blob Storage after referential integrity validation.",
+    version="2.0.0"
 )
 
-# Endpoints registration
-app.include_router(employees.router)
-# app.include_router(departments.router)
-# app.include_router(jobs.router)
+# Endpoint registration
+app.include_router(ingestion.router)
 
 @app.get("/health", tags=["System"])
 async def health_check():
