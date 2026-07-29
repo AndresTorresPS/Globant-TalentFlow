@@ -1,29 +1,27 @@
--- 1. Revisar los Departamentos
+-- ==========================================
+-- Display of Tables
+-- ==========================================
 SELECT * 
-FROM departments 
+FROM departments;
+
+SELECT * 
+FROM jobs
+ORDER BY id DESC 
 LIMIT 10;
 
--- 2. Revisar los Trabajos (Jobs)
 SELECT * 
-FROM jobs 
-LIMIT 10;
+FROM hired_employees;
 
--- 3. Revisar los Empleados Contratados (Datos Limpios)
-SELECT * 
-FROM hired_employees 
-LIMIT 10;
-
--- 4. Revisar los Registros Descartados (Auditoría)
--- Esto te mostrará exactamente qué filas fallaron y por qué
+-- 
 SELECT * 
 FROM bad_records_log
 LIMIT 10;
 
 -- ==========================================
--- 🚀 CONSULTAS ANALÍTICAS DE PRUEBA
+-- Analytical
 -- ==========================================
 
--- 5. ¿Cuántos empleados se contrataron por departamento?
+-- ¿How many hired per department?
 SELECT 
     d.department, 
     COUNT(e.id) AS total_employees
@@ -32,7 +30,7 @@ JOIN departments d ON e.department_id = d.id
 GROUP BY d.department
 ORDER BY total_employees DESC;
 
--- 6. ¿Cuántas contrataciones hubo por año y mes?
+-- ¿How many were hired per year and month?
 SELECT 
     YEAR(CAST(datetime AS TIMESTAMP)) AS hire_year,
     MONTH(CAST(datetime AS TIMESTAMP)) AS hire_month,
