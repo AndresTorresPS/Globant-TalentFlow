@@ -1,0 +1,23 @@
+{
+    "departments": [
+        {
+            "id": 5,
+            "department": "Engineering and AI Research"
+        }
+    ],
+    "jobs": [
+        {
+            "id": 184,
+            "job": "Data Engineer"
+        }
+    ],
+    "employees": [
+        {
+            "id": 3000,
+            "name": "Andres Torres",
+            "datetime": "2026-07-29T12:00:00Z",
+            "department_id": 5,
+            "job_id": 184
+        }
+    ]
+}

@@ -35,13 +35,15 @@ This project was planned and executed using the **Gitflow** methodology, breakin
 *   **Feature 1:** Creation of Delta schemas in Databricks and strict data validation (nulls, ISO 8601 formats, referential integrity). Isolation of invalid records in a `bad_records_log` table.
 *   **Feature 2:** Ingestion of historical CSV files (`hired_employees.csv`, `departments.csv`, `jobs.csv`) into the Data Lake from Azure Blob Storage.
 
-### Release 1.1: Ingestion API and Disaster Recovery
-*   **Feature 3:** Implementation of a generic `POST /api/v1/ingest/{table}` endpoint with FastAPI, validating schemas via Pydantic (up to 1000 records per batch).
-*   **Feature 4 & 5:** Integration of full Backup (export to AVRO) and Restore (overwrite from AVRO) processes through dedicated endpoints.
+### Release 2.0: Ingestion API and Disaster Recovery
+*   **Feature 3:** Detailed check of invalid records at `bad_records_log` table, creation of `detailed_bad_records_log` table.
+*   **Feature 4:** Implementation of a generic `POST /api/v1/ingest/{table}` endpoint with FastAPI, validating schemas via Pydantic (up to 1000 records per batch).
+*   **Feature 5:** Automated update of Delta tables with the new data batches ingested through the API.
+*   **Feature 6:** Integration of full Backup (export to AVRO) and Restore (overwrite from AVRO) processes through dedicated endpoints.
 
-### Release 2.0: Data Analytics (SQL Metrics)
-*   **Feature 6:** Analytical query grouping hires by job and department (separated by quarters - Q1 to Q4) for the year 2021.
-*   **Feature 7:** Calculation of departments that hired above the global average in 2021, utilizing CTEs/Window Functions.
+### Release 3.0: Data Analytics (SQL Metrics)
+*   **Feature 7:** Analytical query grouping hires by job and department (separated by quarters - Q1 to Q4) for the year 2021.
+*   **Feature 8:** Calculation of departments that hired above the global average in 2021, utilizing CTEs/Window Functions.
 
 ---
 
@@ -186,13 +188,11 @@ spark.databricks.cluster.profile singleNode
 The API exposes the following main services (interactively documented at `/docs` via Swagger UI):
 
 *   **Ingestion:** 
-    *   `POST /api/v1/ingest/hired_employees`
-    *   `POST /api/v1/ingest/departments`
-    *   `POST /api/v1/ingest/jobs`
-*   **Disaster Recovery:**
+    *   `POST /api/v2/ingestion/unified-batch`
+*   **Disaster Recovery (Pending):**
     *   `POST /api/v1/backup/{table_name}`
     *   `POST /api/v1/restore/{table_name}`
-*   **Analytics:**
+*   **Analytics (Pending):**
     *   `GET /api/v1/analytics/hires-by-quarter`
     *   `GET /api/v1/analytics/departments-above-average`
 
