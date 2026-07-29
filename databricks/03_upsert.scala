@@ -1,13 +1,13 @@
 import io.delta.tables._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.streaming.Trigger
-import org.apache.spark.sql.functions.{col, explode}
+import org.apache.spark.sql.functions.{col, explode, input_file_name}
 
 // =============================================================
-// 1. INFRASTRUCTURE & AUTHENTICATION CONFIGURATION
+// INFRASTRUCTURE & AUTHENTICATION CONFIGURATION
 // =============================================================
 val storageAccount = "blobglobanttalentflow"
-val container = "raw-data" // Using "raw-data" as configured in previous steps
+val container = "raw-data" 
 val secretScope = "akv-talentflow-scope"
 val secretSasName = "blob-sas-token"
 
@@ -25,9 +25,8 @@ spark.conf.set(
 println(s"[CONFIG] Authentication set for container: $container")
 
 // =============================================================
-// 2. TABLE MAPPINGS (Source JSON folder -> Target Delta Table)
+// TABLE MAPPINGS (Source JSON folder -> Target Delta Table)
 // =============================================================
-// Maps the JSON folder name to the actual Delta table name
 val tableMappings = Map(
   "employees" -> "hired_employees",
   "departments" -> "departments",
@@ -35,7 +34,7 @@ val tableMappings = Map(
 )
 
 // =============================================================
-// 3. INCREMENTAL LOAD & UPSERT LOGIC
+// INCREMENTAL LOAD & UPSERT LOGIC
 // =============================================================
 def processTableQueue(sourceFolder: String, targetTable: String): Unit = {
   println(s"\n[STREAM] Starting Auto Loader for source: $sourceFolder -> target: $targetTable")
@@ -51,6 +50,7 @@ def processTableQueue(sourceFolder: String, targetTable: String): Unit = {
     .option("cloudFiles.inferColumnTypes", "true")
     .option("multiline", "true") 
     .load(rawDataPath)
+    .withColumn("_source_file", input_file_name()) // <--- Capture the file name here
 
   // UPSERT logic for the micro-batch
   def upsertToDelta(microBatchDF: DataFrame, batchId: Long): Unit = {
@@ -58,18 +58,28 @@ def processTableQueue(sourceFolder: String, targetTable: String): Unit = {
     
     if (!microBatchDF.isEmpty) {
         
-        // Extraer y aplanar los registros si Auto Loader los anidó en la columna 'data'
-        val flattenedDF = if (microBatchDF.columns.contains("data")) {
-          microBatchDF.select(explode(col("data")).alias("record")).select("record.*")
+        // --- NEW LOGGING LOGIC ---
+        // Extract distinct file names from this specific micro-batch and log them
+        val processedFiles = microBatchDF.select("_source_file").distinct().collect().map(_.getString(0))
+        println(s"  -> Files detected in this batch:")
+        processedFiles.foreach(fileName => println(s"     - $fileName"))
+        
+        // Drop the temporary file name column so it doesn't break the target Delta schema
+        val cleanMicroBatchDF = microBatchDF.drop("_source_file")
+        // -------------------------
+
+        // Extract and flatten the records if Auto Loader nested them in the 'data' column
+        val flattenedDF = if (cleanMicroBatchDF.columns.contains("data")) {
+          cleanMicroBatchDF.select(explode(col("data")).alias("record")).select("record.*")
         } else {
-          microBatchDF
+          cleanMicroBatchDF
         }
         
         val deltaTable = DeltaTable.forName(s"default.$targetTable") 
         
         deltaTable.as("target")
           .merge(
-            flattenedDF.as("source"), // Usar el DF aplanado aquí
+            flattenedDF.as("source"), 
             "target.id = source.id" 
           )
           .whenMatched().updateAll()  
@@ -89,7 +99,7 @@ def processTableQueue(sourceFolder: String, targetTable: String): Unit = {
 }
 
 // =============================================================
-// 4. EXECUTE FOR ALL TABLES
+// EXECUTE FOR ALL TABLES
 // =============================================================
 tableMappings.foreach { case (sourceFolder, targetTable) => 
   processTableQueue(sourceFolder, targetTable)

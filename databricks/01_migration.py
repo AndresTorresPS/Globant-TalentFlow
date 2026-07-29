@@ -13,7 +13,7 @@ def audit_log(step, message):
 audit_log("INITIALIZATION", "Starting ETL pipeline execution.")
 
 # =============================================================
-# 1. AZURE BLOB STORAGE CONFIGURATION (SAS Token via Key Vault)
+# AZURE BLOB STORAGE CONFIGURATION (SAS Token via Key Vault)
 # =============================================================
 storage_account_name = "blobglobanttalentflow"
 container_name = "raw-data"
@@ -36,7 +36,7 @@ path_data = f"wasbs://{container_name}@{storage_account_name}.blob.core.windows.
 audit_log("CONFIG", f"Targeting base path: {path_data}")
 
 # =============================================================
-# 2. SCHEMA DEFINITION & DATA EXTRACTION
+# SCHEMA DEFINITION & DATA EXTRACTION
 # =============================================================
 audit_log("EXTRACTION", "Defining schemas and loading headless CSV files...")
 
@@ -69,7 +69,7 @@ audit_log("EXTRACTION", f"Loaded Jobs: {df_jobs.count()} records.")
 audit_log("EXTRACTION", f"Loaded Employees: {df_employees.count()} records.")
 
 # =============================================================
-# 3. DEPARTMENTS VALIDATION & LOAD
+# DEPARTMENTS VALIDATION & LOAD
 # Rule: 'id' and 'department' must not be null
 # =============================================================
 audit_log("TRANSFORMATION", "Validating Departments (Null checks)...")
@@ -83,7 +83,7 @@ df_departments_valid.write.format("delta").mode("overwrite").saveAsTable("depart
 audit_log("LOAD", "Departments table successfully saved to Delta Lake.")
 
 # =============================================================
-# 4. JOBS VALIDATION & LOAD
+# JOBS VALIDATION & LOAD
 # Rule: 'id' and 'job' must not be null
 # =============================================================
 audit_log("TRANSFORMATION", "Validating Jobs (Null checks)...")
@@ -97,7 +97,7 @@ df_jobs_valid.write.format("delta").mode("overwrite").saveAsTable("jobs")
 audit_log("LOAD", "Jobs table successfully saved to Delta Lake.")
 
 # =============================================================
-# 5. HIRED_EMPLOYEES VALIDATION
+# HIRED_EMPLOYEES VALIDATION
 # Rules: 
 # - No nulls in required fields
 # - 'datetime' must match ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)
@@ -134,7 +134,7 @@ emp_fully_valid = emp_date_valid.join(valid_dept_ids, emp_date_valid.department_
 audit_log("TRANSFORMATION", f"Employees passing Foreign Keys: {emp_fully_valid.count()} records.")
 
 # =============================================================
-# 6. CAPTURE INVALID RECORDS & FINAL LOAD
+# CAPTURE INVALID RECORDS & FINAL LOAD
 # =============================================================
 # Any record from the original dataframe not present in the fully valid one is considered invalid
 emp_invalid = df_employees.subtract(emp_fully_valid)
@@ -151,9 +151,9 @@ emp_fully_valid.write.format("delta").mode("overwrite").saveAsTable("hired_emplo
 
 # Append bad records to the log table only if any exist
 if invalid_count > 0:
-    audit_log("LOAD", "Appending invalid records to bad_records_log Delta table...")
-    emp_invalid_logged.write.format("delta").mode("append").saveAsTable("bad_records_log")
+    audit_log("LOAD", "Writing invalid records to bad_records_log Delta table...")
+    emp_invalid_logged.write.format("delta").mode("overwrite").saveAsTable("bad_records_log")
 else:
-    audit_log("LOAD", "No invalid records to append. Skipping bad_records_log.")
+    audit_log("LOAD", "No invalid records to write. Skipping bad_records_log.")
 
 audit_log("COMPLETION", "Data migration completed successfully!")
