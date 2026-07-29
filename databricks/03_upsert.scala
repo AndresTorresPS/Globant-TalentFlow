@@ -1,7 +1,7 @@
 import io.delta.tables._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.streaming.Trigger
-import org.apache.spark.sql.functions.{col, explode, input_file_name}
+import java.util.UUID
 
 // =============================================================
 // INFRASTRUCTURE & AUTHENTICATION CONFIGURATION
@@ -13,11 +13,9 @@ val secretSasName = "blob-sas-token"
 
 println("[CONFIG] Retrieving SAS token from Azure Key Vault...")
 
-// Retrieve the token and strip the '?' prefix if it exists
 val rawSasToken = dbutils.secrets.get(scope = secretScope, key = secretSasName)
 val sasToken = rawSasToken.stripPrefix("?")
 
-// Inject the clean token into the Spark configuration
 spark.conf.set(
   s"fs.azure.sas.$container.$storageAccount.blob.core.windows.net",
   sasToken
@@ -25,7 +23,21 @@ spark.conf.set(
 println(s"[CONFIG] Authentication set for container: $container")
 
 // =============================================================
-// TABLE MAPPINGS (Source JSON folder -> Target Delta Table)
+// CREATE AUDIT LOG TABLE (Runs once)
+// =============================================================
+// This table will permanently store the log of each execution
+spark.sql("""
+  CREATE TABLE IF NOT EXISTS default.etl_audit_log (
+    run_id STRING,
+    target_table STRING,
+    batch_id LONG,
+    files_processed LONG,
+    processed_at TIMESTAMP
+  )
+""")
+
+// =============================================================
+// TABLE MAPPINGS
 // =============================================================
 val tableMappings = Map(
   "employees" -> "hired_employees",
@@ -43,6 +55,14 @@ def processTableQueue(sourceFolder: String, targetTable: String): Unit = {
   val checkpointPath = s"wasbs://$container@$storageAccount.blob.core.windows.net/checkpoints/${targetTable}_ingestion"
   val schemaPath = s"wasbs://$container@$storageAccount.blob.core.windows.net/schemas/${targetTable}_schema"
 
+  // Generate a unique run ID for tracking
+  val currentRunId = UUID.randomUUID().toString
+
+  // AMMONITE PROTECTION: Reassign to local variables (primitives) to prevent 
+  // the closure from attempting to read from the notebook's global environment.
+  val localTargetTable = targetTable
+  val localRunId = currentRunId
+
   val df = spark.readStream
     .format("cloudFiles")
     .option("cloudFiles.format", "json")
@@ -50,32 +70,38 @@ def processTableQueue(sourceFolder: String, targetTable: String): Unit = {
     .option("cloudFiles.inferColumnTypes", "true")
     .option("multiline", "true") 
     .load(rawDataPath)
-    .withColumn("_source_file", input_file_name()) // <--- Capture the file name here
+    .withColumn("_source_file", org.apache.spark.sql.functions.col("_metadata.file_path"))
 
-  // UPSERT logic for the micro-batch
+  // UPSERT logic - 100% isolated function
   def upsertToDelta(microBatchDF: DataFrame, batchId: Long): Unit = {
-    println(s"  -> Processing Batch ID: $batchId for table: $targetTable")
+    // AMMONITE PROTECTION: Extract the local Spark session
+    val localSpark = microBatchDF.sparkSession
+    
+    // AMMONITE PROTECTION: Import functions INSIDE the method
+    import org.apache.spark.sql.functions.{col, explode}
+    import io.delta.tables.DeltaTable
+    
+    microBatchDF.cache()
     
     if (!microBatchDF.isEmpty) {
+        val uniqueFilesCount = microBatchDF.select("_source_file").distinct().count()
         
-        // --- NEW LOGGING LOGIC ---
-        // Extract distinct file names from this specific micro-batch and log them
-        val processedFiles = microBatchDF.select("_source_file").distinct().collect().map(_.getString(0))
-        println(s"  -> Files detected in this batch:")
-        processedFiles.foreach(fileName => println(s"     - $fileName"))
+        // Use localSpark instead of the global session
+        localSpark.sql(s"""
+          INSERT INTO default.etl_audit_log 
+          VALUES ('$localRunId', '$localTargetTable', $batchId, $uniqueFilesCount, current_timestamp())
+        """)
         
-        // Drop the temporary file name column so it doesn't break the target Delta schema
         val cleanMicroBatchDF = microBatchDF.drop("_source_file")
-        // -------------------------
 
-        // Extract and flatten the records if Auto Loader nested them in the 'data' column
         val flattenedDF = if (cleanMicroBatchDF.columns.contains("data")) {
           cleanMicroBatchDF.select(explode(col("data")).alias("record")).select("record.*")
         } else {
           cleanMicroBatchDF
         }
         
-        val deltaTable = DeltaTable.forName(s"default.$targetTable") 
+        // AMMONITE PROTECTION: Explicitly pass localSpark to DeltaTable
+        val deltaTable = DeltaTable.forName(localSpark, s"default.$localTargetTable") 
         
         deltaTable.as("target")
           .merge(
@@ -86,16 +112,34 @@ def processTableQueue(sourceFolder: String, targetTable: String): Unit = {
           .whenNotMatched().insertAll() 
           .execute()
     }
+    
+    microBatchDF.unpersist()
   }
 
-  df.writeStream
+  // Start the stream
+  val query = df.writeStream
     .foreachBatch(upsertToDelta _)
     .option("checkpointLocation", checkpointPath)
     .trigger(Trigger.AvailableNow()) 
     .start()
-    .awaitTermination()
     
-  println(s"[SUCCESS] Finished processing pending files for $targetTable")
+  query.awaitTermination()
+    
+  // =========================================================
+  // EXTRACT THE FINAL COUNT FROM THE AUDIT TABLE
+  // =========================================================
+  val auditResultDF = spark.sql(s"""
+    SELECT COALESCE(SUM(files_processed), 0) 
+    FROM default.etl_audit_log 
+    WHERE run_id = '$currentRunId'
+  """)
+  
+  // Safely extract the value
+  val totalProcessed = if (!auditResultDF.isEmpty) auditResultDF.collect()(0).getLong(0) else 0L
+
+  println(s"============================================================")
+  println(s"[SUCCESS] Finished processing $totalProcessed pending file(s) for $targetTable")
+  println(s"============================================================\n")
 }
 
 // =============================================================

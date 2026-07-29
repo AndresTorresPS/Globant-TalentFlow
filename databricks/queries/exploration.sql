@@ -2,6 +2,11 @@
 -- Display of Tables
 -- ==========================================
 SELECT * 
+FROM etl_audit_log
+ORDER BY run_id DESC
+LIMIT 10;
+
+SELECT * 
 FROM departments;
 
 SELECT * 
@@ -10,11 +15,14 @@ ORDER BY id DESC
 LIMIT 10;
 
 SELECT * 
-FROM hired_employees;
+FROM hired_employees
+ORDER BY id DESC
+LIMIT 10;
 
 -- 
 SELECT * 
 FROM bad_records_log
+ORDER BY id DESC
 LIMIT 10;
 
 -- ==========================================
