@@ -1,19 +1,19 @@
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
-// 1. Read the existing Delta tables
+// Existing bad_records_log
 val badRecordsDF = spark.read.table("bad_records_log")
 
-// Read dimension tables and rename their 'id' columns to avoid ambiguity during joins
+// Read of dimension tables and rename their 'id' columns to avoid ambiguity during joins
 val departmentsDF = spark.read.table("departments").select(col("id").alias("dim_dept_id"))
 val jobsDF = spark.read.table("jobs").select(col("id").alias("dim_job_id"))
 
-// 2. Perform Left Joins to check for existence without filtering rows out
+// Perform of Left Joins to check for existence without filtering rows out
 val joinedDF = badRecordsDF
   .join(departmentsDF, col("department_id").cast("int") === col("dim_dept_id"), "left")
   .join(jobsDF, col("job_id").cast("int") === col("dim_job_id"), "left")
 
-// 3. Apply logical validations by creating new boolean columns
+// Apply of logical validations by creating new boolean columns
 val detailedBadRecordsDF = joinedDF
   /* 
    * ID Validation: 
@@ -77,12 +77,12 @@ val detailedBadRecordsDF = joinedDF
    */
   .drop("dim_dept_id", "dim_job_id")
 
-// 4. Write the result into a new Delta table
+// Write of the result into a new Delta table
 detailedBadRecordsDF.write
   .format("delta")
   .mode("overwrite")
   .option("overwriteSchema", "true") 
   .saveAsTable("detailed_bad_records_log")
 
-// 5. Show a sample to visually validate in Databricks
+// Show of a sample to visually validate in Databricks
 display(detailedBadRecordsDF)
