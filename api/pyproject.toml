@@ -8,6 +8,7 @@ dependencies = [
     "azure-identity>=1.25.3",
     "azure-keyvault-secrets>=4.11.0",
     "azure-storage-blob>=12.30.0",
+    "databricks-sql-connector>=4.4.0",
     "fastapi>=0.140.7",
     "pydantic>=2.13.4",
     "python-dotenv>=1.2.2",

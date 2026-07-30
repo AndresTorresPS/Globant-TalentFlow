@@ -7,7 +7,7 @@ from services.azure_blob import upload_json_to_blob
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/api/v2/ingestion",
+    prefix="/api/v3/ingestion",
     tags=["Ingestion"]
 )
 
